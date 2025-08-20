@@ -54,7 +54,9 @@ from ultralytics.utils.torch_utils import (
     torch_distributed_zero_first,
     unset_deterministic,
 )
-
+# BHCHOI : MODIFY
+import shutil
+import mlflow
 
 class BaseTrainer:
     """
@@ -128,12 +130,17 @@ class BaseTrainer:
 
         # Dirs
         self.save_dir = get_save_dir(self.args)
+        # BHCHOI : MODIFY
+        mlflow.set_tag("mlflow.runName", f"{os.path.basename(self.save_dir)}")
+
         self.args.name = self.save_dir.name  # update name for loggers
         self.wdir = self.save_dir / "weights"  # weights dir
         if RANK in {-1, 0}:
             self.wdir.mkdir(parents=True, exist_ok=True)  # make dir
             self.args.save_dir = str(self.save_dir)
             YAML.save(self.save_dir / "args.yaml", vars(self.args))  # save run args
+            # BHCHOI : MODIFY
+            shutil.copy2(self.args.data, self.save_dir / 'data.yaml')
         self.last, self.best = self.wdir / "last.pt", self.wdir / "best.pt"  # checkpoint paths
         self.save_period = self.args.save_period
 
@@ -587,6 +594,15 @@ class BaseTrainer:
             (self.wdir / f"epoch{self.epoch}.pt").write_bytes(serialized_ckpt)  # save epoch, i.e. 'epoch3.pt'
         # if self.args.close_mosaic and self.epoch == (self.epochs - self.args.close_mosaic - 1):
         #    (self.wdir / "last_mosaic.pt").write_bytes(serialized_ckpt)  # save mosaic checkpoint
+
+    # BHCHOI : MODIFY
+    def log_best_model_on_mlflow(self):
+        """Save best model training checkpoints with additional metadata on mlflow."""
+        import mlflow
+
+        mlflow.pytorch.log_model(self.model, "last_model")
+        if self.best_fitness == self.fitness:
+            mlflow.pytorch.log_model(self.model, "best_model")
 
     def get_dataset(self):
         """

@@ -68,7 +68,9 @@ def on_pretrain_routine_end(trainer):
     mlflow.set_tracking_uri(uri)
 
     # Set experiment and run names
-    experiment_name = os.environ.get("MLFLOW_EXPERIMENT_NAME") or trainer.args.project or "/Shared/Ultralytics"
+    # BHCHOI : MODIFY
+    # experiment_name = os.environ.get("MLFLOW_EXPERIMENT_NAME") or trainer.args.project or "/Shared/Ultralytics"
+    experiment_name = os.environ.get('MLFLOW_EXPERIMENT_NAME') or trainer.args.project or 'Default'
     run_name = os.environ.get("MLFLOW_RUN") or trainer.args.name
     mlflow.set_experiment(experiment_name)
 
@@ -100,7 +102,18 @@ def on_train_epoch_end(trainer):
 def on_fit_epoch_end(trainer):
     """Log training metrics at the end of each fit epoch to MLflow."""
     if mlflow:
-        mlflow.log_metrics(metrics=sanitize_dict(trainer.metrics), step=trainer.epoch)
+        # BHCHOI : MODIFY
+        # mlflow.log_metrics(metrics=sanitize_dict(trainer.metrics), step=trainer.epoch)
+        sanitized_metrics = sanitize_dict(trainer.metrics)
+        sanitized_metrics.update(trainer.lr)
+        for i, c in enumerate(trainer.validator.metrics.ap_class_index):
+            sanitized_metrics[f"categories/mAP50-95B/{trainer.validator.names[c]}"] = trainer.validator.metrics.class_result(i)[-1]
+            sanitized_metrics[f"categories/mAP50/{trainer.validator.names[c]}"] = trainer.validator.metrics.class_result(i)[-2]
+        mlflow.log_metrics(metrics=sanitized_metrics, step=trainer.epoch)
+        trainer.log_best_model_on_mlflow()
+        for f in trainer.save_dir.glob('*'):  # log all other files in save_dir
+            if f.suffix in {'.png', '.jpg', '.csv', '.pt', '.yaml'}:
+                mlflow.log_artifact(str(f))
 
 
 def on_train_end(trainer):
