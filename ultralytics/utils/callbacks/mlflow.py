@@ -103,17 +103,17 @@ def on_fit_epoch_end(trainer):
     """Log training metrics at the end of each fit epoch to MLflow."""
     if mlflow:
         # BHCHOI : MODIFY
-        # mlflow.log_metrics(metrics=sanitize_dict(trainer.metrics), step=trainer.epoch)
-        sanitized_metrics = sanitize_dict(trainer.metrics)
-        sanitized_metrics.update(trainer.lr)
-        for i, c in enumerate(trainer.validator.metrics.ap_class_index):
-            sanitized_metrics[f"categories/mAP50-95B/{trainer.validator.names[c]}"] = trainer.validator.metrics.class_result(i)[-1]
-            sanitized_metrics[f"categories/mAP50/{trainer.validator.names[c]}"] = trainer.validator.metrics.class_result(i)[-2]
-        mlflow.log_metrics(metrics=sanitized_metrics, step=trainer.epoch)
-        trainer.log_best_model_on_mlflow()
-        for f in trainer.save_dir.glob('*'):  # log all other files in save_dir
-            if f.suffix in {'.png', '.jpg', '.csv', '.pt', '.yaml'}:
-                mlflow.log_artifact(str(f))
+        mlflow.log_metrics(metrics=sanitize_dict(trainer.metrics), step=trainer.epoch)
+        # sanitized_metrics = sanitize_dict(trainer.metrics)
+        # sanitized_metrics.update(trainer.lr)
+        # for i, c in enumerate(trainer.validator.metrics.ap_class_index):
+        #     sanitized_metrics[f"categories/mAP50-95B/{trainer.validator.names[c]}"] = trainer.validator.metrics.class_result(i)[-1]
+        #     sanitized_metrics[f"categories/mAP50/{trainer.validator.names[c]}"] = trainer.validator.metrics.class_result(i)[-2]
+        # mlflow.log_metrics(metrics=sanitized_metrics, step=trainer.epoch)
+        # trainer.log_best_model_on_mlflow()
+        # for f in trainer.save_dir.glob('*'):  # log all other files in save_dir
+        #     if f.suffix in {'.png', '.jpg', '.csv', '.pt', '.yaml'}:
+        #         mlflow.log_artifact(str(f))
 
 
 def on_train_end(trainer):
